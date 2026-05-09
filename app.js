@@ -28,6 +28,9 @@ const ZapIcon = () => (
 const MicIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
 );
+const FileIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>
+);
 
 const App = () => {
   const [topic, setTopic] = useState('');
@@ -38,6 +41,7 @@ const App = () => {
   const [currentScreen, setCurrentScreen] = useState('input');
   const [results, setResults] = useState(null);
   const [error, setError] = useState('');
+  const [isParsing, setIsParsing] = useState(false);
   
   const [sessions, setSessions] = useState([]);
 
@@ -103,6 +107,52 @@ const App = () => {
       } else {
         alert("Your browser does not support Speech Recognition. Try using Chrome or Edge.");
       }
+    }
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setIsParsing(true);
+    setError('');
+
+    try {
+      let text = '';
+      const fileType = file.name.split('.').pop().toLowerCase();
+
+      if (fileType === 'pdf') {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        let fullText = '';
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          const strings = content.items.map(item => item.str);
+          fullText += strings.join(' ') + '\n';
+        }
+        text = fullText;
+      } else if (fileType === 'docx') {
+        const arrayBuffer = await file.arrayBuffer();
+        const result = await mammoth.extractRawText({ arrayBuffer });
+        text = result.value;
+      } else {
+        // Fallback to plain text for everything else (txt, md, js, etc.)
+        text = await file.text();
+      }
+
+      if (text.trim()) {
+        setSourceMaterial(text.trim());
+      } else {
+        setError("Could not extract any text from the file.");
+      }
+    } catch (err) {
+      console.error("File upload error:", err);
+      setError("Failed to read file. Make sure it's a valid document.");
+    } finally {
+      setIsParsing(false);
+      // Reset input so the same file can be uploaded again if needed
+      e.target.value = '';
     }
   };
 
@@ -313,14 +363,33 @@ const App = () => {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-sm font-medium text-gray-300 flex items-baseline gap-2">
-                    Source Material (Optional but recommended) 
-                    <span className="text-gray-500 font-normal text-xs">— used to generate precise gaps</span>
-                  </label>
+                  <div className="flex justify-between items-end">
+                    <label className="text-sm font-medium text-gray-300 flex items-baseline gap-2">
+                      Source Material (Optional but recommended) 
+                      <span className="text-gray-500 font-normal text-xs">— used to generate precise gaps</span>
+                    </label>
+                    <div className="flex gap-2">
+                      <input 
+                        type="file" 
+                        id="source-file" 
+                        className="hidden" 
+                        onChange={handleFileUpload}
+                        accept=".txt,.pdf,.docx,.md,.js,.py,.html,.css"
+                      />
+                      <label 
+                        htmlFor="source-file"
+                        className={`p-2 rounded-full transition flex items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer ${isParsing ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/50' : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 border border-gray-700'}`}
+                        title="Upload file (PDF, DOCX, TXT...)"
+                      >
+                        {isParsing ? <LoaderIcon /> : <FileIcon />}
+                        {isParsing ? "Parsing..." : "Upload File"}
+                      </label>
+                    </div>
+                  </div>
                   <textarea 
                     value={sourceMaterial}
                     onChange={(e) => setSourceMaterial(e.target.value)}
-                    placeholder="Paste source text..."
+                    placeholder="Paste source text or upload a file..."
                     className="w-full h-24 bg-gray-900/80 border border-gray-700 rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition placeholder:text-gray-600 resize-none shadow-inner"
                   ></textarea>
                 </div>
