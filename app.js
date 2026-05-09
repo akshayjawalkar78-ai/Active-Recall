@@ -58,6 +58,9 @@ const FolderIcon = () => (
 const LayoutIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"></rect><rect width="7" height="5" x="14" y="3" rx="1"></rect><rect width="7" height="9" x="14" y="12" rx="1"></rect><rect width="7" height="5" x="3" y="16" rx="1"></rect></svg>
 );
+const MenuIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+);
 
 const App = () => {
   const [topic, setTopic] = useState('');
@@ -84,6 +87,7 @@ const App = () => {
     history: [] // [{date, score}]
   });
   const [feynmanMode, setFeynmanMode] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   const triggerConfetti = () => {
     if (typeof confetti !== 'undefined') {
@@ -545,16 +549,24 @@ const App = () => {
   );
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen overflow-hidden bg-gray-950">
       {/* Sidebar */}
-      <div className="w-64 bg-gray-950 border-r border-gray-800 flex flex-col hidden md:flex z-20">
-        <div className="p-6 border-b border-gray-800 space-y-4">
+      <div className={`${isSidebarOpen ? 'w-64' : 'w-0'} bg-gray-950 border-r border-gray-800 flex flex-col hidden md:flex z-20 transition-all duration-300 ease-in-out relative overflow-hidden`}>
+        <div className="p-6 border-b border-gray-800 space-y-4 shrink-0">
           <div className="flex items-center justify-between">
             <h1 className="text-sm font-bold text-gray-200 tracking-tight">Active Recall</h1>
-            <div className="flex items-center gap-1 text-orange-400 font-bold text-xs bg-orange-400/10 px-2 py-1 rounded border border-orange-400/20">
-              <FlameIcon />
-              {stats.streak}
-            </div>
+            <button 
+              onClick={() => setIsSidebarOpen(false)}
+              className="text-gray-500 hover:text-white transition-colors"
+              title="Close Sidebar (Zen Mode)"
+            >
+              <XIcon />
+            </button>
+          </div>
+          
+          <div className="flex items-center gap-1 text-orange-400 font-bold text-xs bg-orange-400/10 px-2 py-1 rounded border border-orange-400/20 w-fit">
+            <FlameIcon />
+            {stats.streak} Streak
           </div>
           
           <nav className="space-y-1">
@@ -662,7 +674,16 @@ const App = () => {
       <div className="flex-1 flex flex-col relative overflow-hidden bg-gradient-to-br from-gray-950 to-gray-900">
         {/* Header */}
         <header className="h-16 flex shrink-0 items-center justify-between px-6 border-b border-white/5 glass z-10">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
+            {!isSidebarOpen && (
+              <button 
+                onClick={() => setIsSidebarOpen(true)}
+                className="p-2 hover:bg-white/5 rounded-lg text-gray-400 hover:text-indigo-400 transition-all animate-in fade-in"
+                title="Open Sidebar"
+              >
+                <MenuIcon />
+              </button>
+            )}
             <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent flex items-center gap-2">
               <ZapIcon />
               Active Recall Coach
