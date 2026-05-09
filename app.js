@@ -65,7 +65,7 @@ const App = () => {
   const [sourceMaterial, setSourceMaterial] = useState('');
   const [confidence, setConfidence] = useState(3);
   
-  const [currentScreen, setCurrentScreen] = useState('input');
+  const [currentScreen, setCurrentScreen] = useState('dashboard');
   const [results, setResults] = useState(null);
   const [error, setError] = useState('');
   const [isParsing, setIsParsing] = useState(false);
@@ -680,20 +680,22 @@ const App = () => {
 
             {currentScreen === 'input' && (
               <div className="space-y-8 animate-in">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-2xl font-bold text-white tracking-tight">Focus on a Topic</h2>
-                    <select 
-                      value={currentFolder} 
-                      onChange={(e) => setCurrentFolder(e.target.value)}
-                      className="bg-gray-900 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-400 focus:outline-none focus:border-indigo-500 transition"
-                    >
-                      {folders.map(f => <option key={f} value={f}>{f}</option>)}
-                    </select>
+                {/* Topic Section */}
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-2xl font-bold text-white tracking-tight">Focus on a Topic</h2>
+                      <select 
+                        value={currentFolder} 
+                        onChange={(e) => setCurrentFolder(e.target.value)}
+                        className="bg-gray-900 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-400 focus:outline-none focus:border-indigo-500 transition"
+                      >
+                        {folders.map(f => <option key={f} value={f}>{f}</option>)}
+                      </select>
+                    </div>
+                    <p className="text-gray-500 text-sm">What are you mastering today?</p>
                   </div>
-                  <p className="text-gray-500 text-sm">What are you mastering today?</p>
-                </div>
-                <input 
+                  <input 
                     type="text" 
                     value={topic}
                     onChange={(e) => setTopic(e.target.value)}
@@ -702,7 +704,8 @@ const App = () => {
                   />
                 </div>
 
-                <div className="space-y-1">
+                {/* Brain Dump Section */}
+                <div className="space-y-3">
                   <div className="flex justify-between items-end">
                     <label className="text-sm font-medium text-gray-300 flex items-baseline gap-2">
                       Brain Dump 
@@ -721,11 +724,12 @@ const App = () => {
                     value={brainDump}
                     onChange={(e) => setBrainDump(e.target.value)}
                     placeholder="Type or speak freely here..."
-                    className="w-full h-48 bg-gray-900/80 border border-gray-700 rounded-lg px-4 py-3 text-indigo-100 font-mono text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition placeholder:text-gray-600 resize-none shadow-inner mt-1"
+                    className="w-full h-48 bg-gray-900/80 border border-gray-700 rounded-lg px-4 py-3 text-indigo-100 font-mono text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition placeholder:text-gray-600 resize-none shadow-inner"
                   ></textarea>
                 </div>
 
-                <div className="space-y-1">
+                {/* Source Material Section */}
+                <div className="space-y-3">
                   <div className="flex justify-between items-end">
                     <label className="text-sm font-medium text-gray-300 flex items-baseline gap-2">
                       Source Material (Optional but recommended) 
@@ -765,6 +769,7 @@ const App = () => {
                   ></textarea>
                 </div>
 
+                {/* Confidence Section */}
                 <div className="space-y-3 pt-2 bg-gray-900/30 p-4 rounded-xl border border-gray-800">
                   <div className="flex justify-between items-center">
                     <label className="text-sm font-medium text-gray-300">How confident do you feel?</label>
@@ -785,6 +790,7 @@ const App = () => {
                   </div>
                 </div>
 
+                {/* Feynman Mode Toggle */}
                 <div className="pt-2 bg-indigo-500/5 border border-indigo-500/10 rounded-xl p-5 space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
