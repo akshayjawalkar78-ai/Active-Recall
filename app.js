@@ -458,7 +458,6 @@ const App = () => {
             )}
           </div>
         </main>
-      </div>
 
       {/* Attribution Footer */}
       <footer className="w-full py-8 px-6 border-t border-white/5 bg-gray-950/50 backdrop-blur-md mt-auto z-10">
@@ -474,7 +473,8 @@ const App = () => {
         </div>
       </footer>
     </div>
-  );
+  </div>
+);
 };
 
 // Collapsible Section Component
