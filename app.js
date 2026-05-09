@@ -472,6 +472,7 @@ const App = () => {
     if (results?.review_flag) {
       navigator.clipboard.writeText(results.review_flag);
     }
+  };
   const DashboardView = () => (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
