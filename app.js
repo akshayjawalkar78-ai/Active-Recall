@@ -40,6 +40,18 @@ const LinkIcon = () => (
 const SparklesIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path><path d="M5 3v4"></path><path d="M19 17v4"></path><path d="M3 5h4"></path><path d="M17 19h4"></path></svg>
 );
+const FlameIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>
+);
+const TrophyIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg>
+);
+const InfoIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+);
+const ChartIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+);
 
 const App = () => {
   const [topic, setTopic] = useState('');
@@ -55,6 +67,13 @@ const App = () => {
   const [apiKey, setApiKey] = useState(localStorage.getItem('active_recall_apikey') || '');
   
   const [sessions, setSessions] = useState([]);
+  const [stats, setStats] = useState({
+    streak: 0,
+    xp: 0,
+    lastDate: null,
+    history: [] // [{date, score}]
+  });
+  const [feynmanMode, setFeynmanMode] = useState(false);
 
   // Voice to Text State
   const [isListening, setIsListening] = useState(false);
@@ -62,18 +81,26 @@ const App = () => {
   
   useEffect(() => {
     const savedSessions = localStorage.getItem('active_recall_sessions');
+    const savedStats = localStorage.getItem('active_recall_stats');
     if (savedSessions) {
       try {
         setSessions(JSON.parse(savedSessions));
-      } catch (e) {
-        console.error("Failed to parse sessions", e);
-      }
+      } catch (e) { console.error(e); }
+    }
+    if (savedStats) {
+      try {
+        setStats(JSON.parse(savedStats));
+      } catch (e) { console.error(e); }
     }
   }, []);
 
   useEffect(() => {
     localStorage.setItem('active_recall_sessions', JSON.stringify(sessions));
   }, [sessions]);
+
+  useEffect(() => {
+    localStorage.setItem('active_recall_stats', JSON.stringify(stats));
+  }, [stats]);
 
   useEffect(() => {
     localStorage.setItem('active_recall_apikey', apiKey);
@@ -192,6 +219,11 @@ const App = () => {
     setError('');
 
     try {
+      // Feynman Mode Enhancement
+      let aiPrompt = feynmanMode 
+        ? `Act as a curious but confused student. After providing a concise study guide for "${topic}", ask me 2-3 specific, challenging questions that test if I truly understand the underlying concepts, not just the definitions.`
+        : `Create a concise, high-density study guide for: "${topic}". Focus on core definitions and key facts.`;
+
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
@@ -206,7 +238,7 @@ const App = () => {
           messages: [
             {
               role: 'user',
-              content: `Create a concise, high-density study guide for: "${topic}". Focus on core definitions and key facts.`
+              content: aiPrompt
             }
           ]
         })
@@ -307,6 +339,23 @@ const App = () => {
         }
       }
 
+      // Calculate Score (0-100)
+      let score = 0;
+      if (isClueless) {
+        score = 10;
+      } else {
+        const keywordScore = sourceMaterial.trim().length > 10 ? (recalled_correctly.length / (recalled_correctly.length + gaps.length)) * 70 : 30;
+        const lengthScore = Math.min(wordCount / 2, 20);
+        const confidenceBonus = confidence * 2;
+        score = Math.round(keywordScore + lengthScore + confidenceBonus);
+      }
+
+      // Next Review Date
+      let nextReview = "";
+      if (score < 40) nextReview = "Tomorrow";
+      else if (score < 75) nextReview = "In 3 days";
+      else nextReview = "In 1 week (Mastery reached!)";
+
       const parsedResults = {
         recalled_correctly,
         gaps,
@@ -314,17 +363,46 @@ const App = () => {
           `If you had to explain ${topic} to a 10-year-old using only the things you JUST recalled, could you?`,
           `What is the most 'boring' part of this topic? (That's usually the part you'll forget first).`
         ],
-        review_flag
+        review_flag,
+        score,
+        nextReview
       };
       
       setResults(parsedResults);
       
+      // Update Stats & Gamification
+      const now = new Date();
+      const today = now.toDateString();
+      
+      setStats(prev => {
+        let newStreak = prev.streak;
+        if (!prev.lastDate) {
+          newStreak = 1;
+        } else {
+          const last = new Date(prev.lastDate);
+          const diffTime = Math.abs(now - last);
+          const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+          
+          if (diffDays === 1) newStreak += 1;
+          else if (diffDays > 1) newStreak = 1;
+        }
+
+        return {
+          ...prev,
+          streak: newStreak,
+          xp: prev.xp + (score * 5),
+          lastDate: now.toISOString(),
+          history: [{date: today, score}, ...prev.history].slice(0, 10)
+        };
+      });
+
       const newSession = {
         id: Date.now(),
         topic,
         confidence,
         review_flag: parsedResults.review_flag,
-        date: new Date().toISOString()
+        date: new Date().toISOString(),
+        score
       };
       setSessions(prev => [newSession, ...prev]);
       setCurrentScreen('results');
@@ -351,33 +429,84 @@ const App = () => {
     <div className="flex h-screen overflow-hidden">
       {/* Sidebar */}
       <div className="w-64 bg-gray-900 border-r border-gray-800 flex flex-col hidden md:flex z-20">
-        <div className="p-4 border-b border-gray-800">
-          <h2 className="text-lg font-semibold tracking-wide text-gray-200 flex items-center gap-2">
-            <HistoryIcon />
-            Recall History
-          </h2>
-        </div>
-        <div className="flex-1 overflow-y-auto p-3 space-y-3">
-          {sessions.length === 0 ? (
-            <p className="text-gray-500 text-sm text-center mt-6">No sessions yet. Start a brain dump!</p>
-          ) : (
-            sessions.map(session => (
-              <div 
-                key={session.id} 
-                className="bg-gray-850 p-3 rounded-lg border border-gray-800 hover:border-gray-700 transition cursor-pointer group"
-                onClick={() => {
-                  setTopic(session.topic);
-                  setConfidence(session.confidence);
-                }}
-              >
-                <div className="text-sm font-medium text-gray-300 truncate group-hover:text-indigo-400 transition-colors">{session.topic}</div>
-                <div className="text-xs text-gray-500 mt-1">{new Date(session.date).toLocaleDateString()} • Conf: {session.confidence}/5</div>
-                <div className="mt-2 text-xs text-indigo-300 bg-indigo-900/30 p-2 rounded line-clamp-2" title={session.review_flag}>
-                  {session.review_flag}
-                </div>
+        <div className="p-6 border-b border-gray-800 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-bold uppercase tracking-widest text-gray-500">Student Profile</h2>
+            <div className="flex gap-2">
+              <div className="flex items-center gap-1 text-orange-400 font-bold text-sm bg-orange-400/10 px-2 py-0.5 rounded border border-orange-400/20" title="Daily Streak">
+                <FlameIcon />
+                {stats.streak}
               </div>
-            ))
-          )}
+            </div>
+          </div>
+          
+          <div className="space-y-1">
+            <div className="flex justify-between items-end">
+              <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-tighter">Level {Math.floor(stats.xp / 1000) + 1}</span>
+              <span className="text-[10px] font-medium text-gray-500">{stats.xp} XP</span>
+            </div>
+            <div className="h-1.5 w-full bg-gray-800 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-1000" 
+                style={{ width: `${(stats.xp % 1000) / 10}%` }}
+              ></div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-3 space-y-6">
+          <section className="space-y-3">
+            <h3 className="px-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+              <ChartIcon />
+              Recent Progress
+            </h3>
+            {stats.history.length === 0 ? (
+              <div className="px-2 text-xs text-gray-600 italic">Complete a session to see progress...</div>
+            ) : (
+              <div className="flex items-end gap-1 h-16 px-2 pt-2">
+                {stats.history.map((h, i) => (
+                  <div 
+                    key={i} 
+                    className="flex-1 bg-indigo-500/40 rounded-t-sm hover:bg-indigo-400 transition-all group relative"
+                    style={{ height: `${h.score}%` }}
+                  >
+                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-gray-800 text-[8px] px-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-30">
+                      {h.score}%
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section className="space-y-3">
+            <h3 className="px-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+              <HistoryIcon />
+              Recall History
+            </h3>
+            <div className="space-y-2">
+              {sessions.length === 0 ? (
+                <p className="text-gray-500 text-xs text-center mt-4">No sessions yet.</p>
+              ) : (
+                sessions.slice(0, 5).map(session => (
+                  <div 
+                    key={session.id} 
+                    className="bg-gray-850/50 p-3 rounded-lg border border-gray-800 hover:border-gray-700 transition cursor-pointer group"
+                    onClick={() => {
+                      setTopic(session.topic);
+                      setConfidence(session.confidence);
+                    }}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="text-xs font-medium text-gray-300 truncate group-hover:text-indigo-400 transition-colors w-3/4">{session.topic}</div>
+                      <div className="text-[10px] font-bold text-indigo-400">{session.score}%</div>
+                    </div>
+                    <div className="text-[9px] text-gray-600 mt-1">{new Date(session.date).toLocaleDateString()}</div>
+                  </div>
+                ))
+              )}
+            </div>
+          </section>Section>
         </div>
         
         <div className="p-4 border-t border-gray-800 bg-gray-950/20">
@@ -528,6 +657,30 @@ const App = () => {
                   </div>
                 </div>
 
+                <div className="pt-2 bg-indigo-500/5 border border-indigo-500/10 rounded-xl p-5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-indigo-300">Feynman Mode</span>
+                        <div className="group relative">
+                          <InfoIcon className="text-indigo-500 cursor-help" />
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-gray-900 border border-gray-700 rounded-lg text-[11px] text-gray-300 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 leading-relaxed">
+                            <span className="font-bold text-indigo-400 block mb-1">Teaching is the best way to learn.</span>
+                            The AI will act as a confused student and ask you challenging "why" and "how" questions to test if you truly understand the concepts, not just the definitions.
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-gray-500">Enable AI-driven Socratic questioning.</p>
+                    </div>
+                    <button 
+                      onClick={() => setFeynmanMode(!feynmanMode)}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${feynmanMode ? 'bg-indigo-600' : 'bg-gray-700'}`}
+                    >
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${feynmanMode ? 'translate-x-6' : 'translate-x-1'}`} />
+                    </button>
+                  </div>
+                </div>
+
                 <div className="pt-4">
                   <button 
                     onClick={handleAnalyze}
@@ -552,6 +705,29 @@ const App = () => {
             {currentScreen === 'results' && results && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
                 
+                {/* Score & Mastery Header */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-gray-900/60 border border-gray-800 rounded-2xl p-6 flex flex-col items-center justify-center text-center space-y-2">
+                    <div className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em]">Recall Accuracy</div>
+                    <div className="text-5xl font-black bg-gradient-to-br from-indigo-400 to-purple-500 bg-clip-text text-transparent">
+                      {results.score}%
+                    </div>
+                    <div className="flex gap-1">
+                      {[1,2,3,4,5].map(i => (
+                        <div key={i} className={`w-1.5 h-1.5 rounded-full ${i <= (results.score/20) ? 'bg-indigo-500' : 'bg-gray-700'}`}></div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div className="bg-gray-900/60 border border-gray-800 rounded-2xl p-6 flex flex-col items-center justify-center text-center space-y-2">
+                    <div className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em]">Next Review</div>
+                    <div className="text-xl font-bold text-gray-200">
+                      {results.nextReview}
+                    </div>
+                    <div className="text-[10px] text-indigo-400 font-medium">Spaced Repetition Optimized</div>
+                  </div>
+                </div>
+
                 {/* Sections */}
                 <CollapsibleSection 
                   title="Recalled Correctly" 
