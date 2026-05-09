@@ -52,6 +52,12 @@ const InfoIcon = () => (
 const ChartIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
 );
+const FolderIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"></path></svg>
+);
+const LayoutIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"></rect><rect width="7" height="5" x="14" y="3" rx="1"></rect><rect width="7" height="9" x="14" y="12" rx="1"></rect><rect width="7" height="5" x="3" y="16" rx="1"></rect></svg>
+);
 
 const App = () => {
   const [topic, setTopic] = useState('');
@@ -59,7 +65,7 @@ const App = () => {
   const [sourceMaterial, setSourceMaterial] = useState('');
   const [confidence, setConfidence] = useState(3);
   
-  const [currentScreen, setCurrentScreen] = useState('input');
+  const [currentScreen, setCurrentScreen] = useState('dashboard');
   const [results, setResults] = useState(null);
   const [error, setError] = useState('');
   const [isParsing, setIsParsing] = useState(false);
@@ -67,6 +73,10 @@ const App = () => {
   const [apiKey, setApiKey] = useState(localStorage.getItem('active_recall_apikey') || '');
   
   const [sessions, setSessions] = useState([]);
+  const [folders, setFolders] = useState(['General']);
+  const [selectedFolder, setSelectedFolder] = useState('All');
+  const [currentFolder, setCurrentFolder] = useState('General');
+  
   const [stats, setStats] = useState({
     streak: 0,
     xp: 0,
@@ -75,13 +85,23 @@ const App = () => {
   });
   const [feynmanMode, setFeynmanMode] = useState(false);
 
-  // Voice to Text State
+  const triggerConfetti = () => {
+    if (typeof confetti !== 'undefined') {
+      confetti({
+        particleCount: 150,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#6366f1', '#a855f7', '#ffffff']
+      });
+    }
+  };
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = React.useRef(null);
   
   useEffect(() => {
     const savedSessions = localStorage.getItem('active_recall_sessions');
     const savedStats = localStorage.getItem('active_recall_stats');
+    const savedFolders = localStorage.getItem('active_recall_folders');
     if (savedSessions) {
       try {
         setSessions(JSON.parse(savedSessions));
@@ -90,6 +110,11 @@ const App = () => {
     if (savedStats) {
       try {
         setStats(JSON.parse(savedStats));
+      } catch (e) { console.error(e); }
+    }
+    if (savedFolders) {
+      try {
+        setFolders(JSON.parse(savedFolders));
       } catch (e) { console.error(e); }
     }
   }, []);
@@ -101,6 +126,10 @@ const App = () => {
   useEffect(() => {
     localStorage.setItem('active_recall_stats', JSON.stringify(stats));
   }, [stats]);
+
+  useEffect(() => {
+    localStorage.setItem('active_recall_folders', JSON.stringify(folders));
+  }, [folders]);
 
   useEffect(() => {
     localStorage.setItem('active_recall_apikey', apiKey);
@@ -258,7 +287,22 @@ const App = () => {
     }
   };
 
-  // --- Local Fast Algorithm ---
+  const handleAddFolder = () => {
+    const name = prompt("Enter folder name:");
+    if (name && !folders.includes(name)) {
+      setFolders([...folders, name]);
+      setCurrentFolder(name);
+    }
+  };
+
+  const filteredSessions = sessions.filter(s => 
+    selectedFolder === 'All' || s.folder === selectedFolder
+  );
+
+  const dueForReview = sessions.filter(s => {
+    const score = s.score || 0;
+    return score < 80; // Simple logic: anything not mastered is due
+  }).slice(0, 3);
   const handleAnalyze = async () => {
     if (!topic.trim() || !brainDump.trim()) {
       setError("Please provide both a topic and your brain dump.");
@@ -396,13 +440,18 @@ const App = () => {
         };
       });
 
+      if (score >= 90) {
+        triggerConfetti();
+      }
+
       const newSession = {
         id: Date.now(),
         topic,
         confidence,
         review_flag: parsedResults.review_flag,
         date: new Date().toISOString(),
-        score
+        score,
+        folder: currentFolder
       };
       setSessions(prev => [newSession, ...prev]);
       setCurrentScreen('results');
@@ -423,92 +472,158 @@ const App = () => {
     if (results?.review_flag) {
       navigator.clipboard.writeText(results.review_flag);
     }
-  };
+  const DashboardView = () => (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-gray-900 border border-gray-800 p-6 rounded-2xl">
+          <div className="text-gray-500 text-xs font-bold uppercase tracking-widest">Total XP</div>
+          <div className="text-3xl font-bold text-white mt-1">{stats.xp}</div>
+        </div>
+        <div className="bg-gray-900 border border-gray-800 p-6 rounded-2xl">
+          <div className="text-gray-500 text-xs font-bold uppercase tracking-widest">Streak</div>
+          <div className="text-3xl font-bold text-orange-400 mt-1">{stats.streak} Days</div>
+        </div>
+        <div className="bg-gray-900 border border-gray-800 p-6 rounded-2xl">
+          <div className="text-gray-500 text-xs font-bold uppercase tracking-widest">Sessions</div>
+          <div className="text-3xl font-bold text-indigo-400 mt-1">{sessions.length}</div>
+        </div>
+      </div>
+      
+      <div className="bg-gray-900 border border-gray-800 p-6 rounded-2xl">
+        <h3 className="text-sm font-bold text-gray-300 mb-4">Needs Attention (Low Scores)</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {dueForReview.length === 0 ? (
+            <div className="text-gray-500 text-xs italic py-2">All topics are looking good!</div>
+          ) : (
+            dueForReview.map(s => (
+              <div 
+                key={s.id} 
+                className="p-4 bg-gray-950 border border-gray-800 rounded-xl hover:border-indigo-500/50 transition cursor-pointer group"
+                onClick={() => {
+                  setTopic(s.topic);
+                  setConfidence(s.confidence);
+                  setCurrentScreen('input');
+                }}
+              >
+                <div className="flex justify-between items-center">
+                  <div className="text-xs font-bold text-gray-300 group-hover:text-indigo-400">{s.topic}</div>
+                  <div className="text-[10px] bg-red-900/20 text-red-400 px-2 py-0.5 rounded-full">{s.score}%</div>
+                </div>
+                <p className="text-[10px] text-gray-600 mt-2">Ready for a re-recall session?</p>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+      
+      <div className="bg-gray-900 border border-gray-800 p-6 rounded-2xl">
+        <h3 className="text-sm font-bold text-gray-300 mb-4">Recent Performance</h3>
+        <div className="flex items-end gap-2 h-32 px-2">
+          {stats.history.slice(-10).map((h, i) => (
+            <div key={i} className="flex-1 bg-indigo-500/20 rounded-t-lg relative group" style={{ height: `${h.score}%` }}>
+              <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-800 text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                {h.score}%
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="flex h-screen overflow-hidden">
       {/* Sidebar */}
-      <div className="w-64 bg-gray-900 border-r border-gray-800 flex flex-col hidden md:flex z-20">
+      <div className="w-64 bg-gray-950 border-r border-gray-800 flex flex-col hidden md:flex z-20">
         <div className="p-6 border-b border-gray-800 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xs font-bold uppercase tracking-widest text-gray-500">Student Profile</h2>
-            <div className="flex gap-2">
-              <div className="flex items-center gap-1 text-orange-400 font-bold text-sm bg-orange-400/10 px-2 py-0.5 rounded border border-orange-400/20" title="Daily Streak">
-                <FlameIcon />
-                {stats.streak}
-              </div>
+            <h1 className="text-sm font-bold text-gray-200 tracking-tight">Active Recall</h1>
+            <div className="flex items-center gap-1 text-orange-400 font-bold text-xs bg-orange-400/10 px-2 py-1 rounded border border-orange-400/20">
+              <FlameIcon />
+              {stats.streak}
             </div>
           </div>
           
-          <div className="space-y-1">
-            <div className="flex justify-between items-end">
-              <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-tighter">Level {Math.floor(stats.xp / 1000) + 1}</span>
-              <span className="text-[10px] font-medium text-gray-500">{stats.xp} XP</span>
-            </div>
-            <div className="h-1.5 w-full bg-gray-800 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-1000" 
-                style={{ width: `${(stats.xp % 1000) / 10}%` }}
-              ></div>
-            </div>
-          </div>
+          <nav className="space-y-1">
+            <button 
+              onClick={() => setCurrentScreen('dashboard')}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition ${currentScreen === 'dashboard' ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.1)]' : 'text-gray-500 hover:bg-gray-900'}`}
+            >
+              <LayoutIcon /> Dashboard
+            </button>
+            <button 
+              onClick={() => {
+                setTopic('');
+                setBrainDump('');
+                setSourceMaterial('');
+                setCurrentScreen('input');
+              }}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition ${currentScreen === 'input' ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.1)]' : 'text-gray-500 hover:bg-gray-900'}`}
+            >
+              <SparklesIcon /> New Session
+            </button>
+          </nav>
         </div>
 
         <div className="flex-1 overflow-y-auto p-3 space-y-6">
           <section className="space-y-3">
-            <h3 className="px-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
-              <ChartIcon />
-              Recent Progress
-            </h3>
-            {stats.history.length === 0 ? (
-              <div className="px-2 text-xs text-gray-600 italic">Complete a session to see progress...</div>
-            ) : (
-              <div className="flex items-end gap-1 h-16 px-2 pt-2">
-                {stats.history.map((h, i) => (
-                  <div 
-                    key={i} 
-                    className="flex-1 bg-indigo-500/40 rounded-t-sm hover:bg-indigo-400 transition-all group relative"
-                    style={{ height: `${h.score}%` }}
-                  >
-                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-gray-800 text-[8px] px-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-30">
-                      {h.score}%
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <div className="flex items-center justify-between px-2">
+              <h3 className="text-[10px] font-bold text-gray-600 uppercase tracking-widest flex items-center gap-2">
+                <FolderIcon />
+                Library
+              </h3>
+              <button onClick={handleAddFolder} className="text-gray-600 hover:text-indigo-400 text-lg">+</button>
+            </div>
+            <div className="space-y-1">
+              <button 
+                onClick={() => setSelectedFolder('All')}
+                className={`w-full text-left px-3 py-1.5 rounded-md text-[11px] transition ${selectedFolder === 'All' ? 'text-indigo-400 bg-indigo-500/5' : 'text-gray-500 hover:text-gray-300'}`}
+              >
+                All Sessions
+              </button>
+              {folders.map(f => (
+                <button 
+                  key={f}
+                  onClick={() => setSelectedFolder(f)}
+                  className={`w-full text-left px-3 py-1.5 rounded-md text-[11px] transition ${selectedFolder === f ? 'text-indigo-400 bg-indigo-500/5 font-medium' : 'text-gray-500 hover:text-gray-300'}`}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
           </section>
 
           <section className="space-y-3">
-            <h3 className="px-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+            <h3 className="px-2 text-[10px] font-bold text-gray-600 uppercase tracking-widest flex items-center gap-2">
               <HistoryIcon />
-              Recall History
+              History
             </h3>
             <div className="space-y-2">
-              {sessions.length === 0 ? (
-                <p className="text-gray-500 text-xs text-center mt-4">No sessions yet.</p>
+              {filteredSessions.length === 0 ? (
+                <p className="text-gray-700 text-[10px] px-2 italic">Empty...</p>
               ) : (
-                sessions.slice(0, 5).map(session => (
+                filteredSessions.slice(0, 8).map(session => (
                   <div 
                     key={session.id} 
-                    className="bg-gray-850/50 p-3 rounded-lg border border-gray-800 hover:border-gray-700 transition cursor-pointer group"
+                    className="group px-3 py-2 rounded-lg hover:bg-gray-900/50 cursor-pointer transition border border-transparent hover:border-gray-800"
                     onClick={() => {
                       setTopic(session.topic);
                       setConfidence(session.confidence);
+                      setCurrentScreen('input');
                     }}
                   >
-                    <div className="flex justify-between items-start">
-                      <div className="text-xs font-medium text-gray-300 truncate group-hover:text-indigo-400 transition-colors w-3/4">{session.topic}</div>
-                      <div className="text-[10px] font-bold text-indigo-400">{session.score}%</div>
+                    <div className="text-[11px] font-medium text-gray-400 truncate group-hover:text-indigo-300 transition-colors">{session.topic}</div>
+                    <div className="flex justify-between items-center mt-1">
+                      <span className="text-[9px] text-gray-700">{new Date(session.date).toLocaleDateString()}</span>
+                      <span className="text-[9px] font-bold text-indigo-500/70">{session.score}%</span>
                     </div>
-                    <div className="text-[9px] text-gray-600 mt-1">{new Date(session.date).toLocaleDateString()}</div>
                   </div>
                 ))
               )}
             </div>
           </section>
         </div>
-        
+
         <div className="p-4 border-t border-gray-800 bg-gray-950/20">
           <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 block">AI Settings</label>
           <input 
@@ -560,12 +675,24 @@ const App = () => {
                 <div className="text-sm break-words flex-1">{error}</div>
               </div>
             )}
+            {currentScreen === 'dashboard' && <DashboardView />}
 
             {currentScreen === 'input' && (
-              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="space-y-1">
-                  <label className="text-sm font-medium text-gray-300">Topic</label>
-                  <input 
+              <div className="space-y-8 animate-in">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-2xl font-bold text-white tracking-tight">Focus on a Topic</h2>
+                    <select 
+                      value={currentFolder} 
+                      onChange={(e) => setCurrentFolder(e.target.value)}
+                      className="bg-gray-900 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-400 focus:outline-none focus:border-indigo-500 transition"
+                    >
+                      {folders.map(f => <option key={f} value={f}>{f}</option>)}
+                    </select>
+                  </div>
+                  <p className="text-gray-500 text-sm">What are you mastering today?</p>
+                </div>
+                <input 
                     type="text" 
                     value={topic}
                     onChange={(e) => setTopic(e.target.value)}
