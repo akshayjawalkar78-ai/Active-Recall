@@ -478,11 +478,11 @@ const App = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-gray-900 border border-gray-800 p-6 rounded-2xl">
           <div className="text-gray-500 text-xs font-bold uppercase tracking-widest">Total XP</div>
-          <div className="text-3xl font-bold text-white mt-1">{stats.xp}</div>
+          <div className="text-3xl font-bold text-white mt-1">{stats.xp || 0}</div>
         </div>
         <div className="bg-gray-900 border border-gray-800 p-6 rounded-2xl">
           <div className="text-gray-500 text-xs font-bold uppercase tracking-widest">Streak</div>
-          <div className="text-3xl font-bold text-orange-400 mt-1">{stats.streak} Days</div>
+          <div className="text-3xl font-bold text-orange-400 mt-1">{stats.streak || 0} Days</div>
         </div>
         <div className="bg-gray-900 border border-gray-800 p-6 rounded-2xl">
           <div className="text-gray-500 text-xs font-bold uppercase tracking-widest">Sessions</div>
@@ -520,7 +520,7 @@ const App = () => {
       <div className="bg-gray-900 border border-gray-800 p-6 rounded-2xl">
         <h3 className="text-sm font-bold text-gray-300 mb-4">Recent Performance</h3>
         <div className="flex items-end gap-2 h-32 px-2">
-          {stats.history.slice(-10).map((h, i) => (
+          {(stats.history || []).slice(-10).map((h, i) => (
             <div key={i} className="flex-1 bg-indigo-500/20 rounded-t-lg relative group" style={{ height: `${h.score}%` }}>
               <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-800 text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
                 {h.score}%
@@ -582,7 +582,7 @@ const App = () => {
               >
                 All Sessions
               </button>
-              {folders.map(f => (
+              {(folders || []).map(f => (
                 <button 
                   key={f}
                   onClick={() => setSelectedFolder(f)}
