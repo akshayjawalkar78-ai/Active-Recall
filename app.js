@@ -31,6 +31,9 @@ const MicIcon = () => (
 const FileIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>
 );
+const MailIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4Z"></path><path d="M22 2 11 13"></path></svg>
+);
 
 const App = () => {
   const [topic, setTopic] = useState('');
@@ -309,11 +312,21 @@ const App = () => {
       <div className="flex-1 flex flex-col relative overflow-hidden bg-gradient-to-br from-gray-950 to-gray-900">
         {/* Header */}
         <header className="h-16 flex shrink-0 items-center justify-between px-6 border-b border-white/5 glass z-10">
-          <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent flex items-center gap-2">
-            <ZapIcon />
-            Active Recall Coach
-            <span className="text-xs font-medium bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full ml-2 border border-indigo-500/30">Local Mode</span>
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent flex items-center gap-2">
+              <ZapIcon />
+              Active Recall Coach
+            </h1>
+            <span className="text-[10px] font-bold tracking-widest uppercase bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded border border-indigo-500/20">Local Mode</span>
+          </div>
+
+          <a 
+            href="mailto:akshay.jawalkar78@gmail.com"
+            className="flex items-center gap-2 text-xs font-medium text-gray-400 hover:text-indigo-300 transition-colors bg-white/5 px-3 py-1.5 rounded-full border border-white/5 hover:border-indigo-500/30 group"
+          >
+            <MailIcon />
+            <span className="hidden sm:inline">akshay.jawalkar78@gmail.com</span>
+          </a>
         </header>
 
         {/* Content Area */}
