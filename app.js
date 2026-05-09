@@ -459,6 +459,20 @@ const App = () => {
           </div>
         </main>
       </div>
+
+      {/* Attribution Footer */}
+      <footer className="w-full py-8 px-6 border-t border-white/5 bg-gray-950/50 backdrop-blur-md mt-auto z-10">
+        <div className="max-w-3xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
+          <div className="flex items-center gap-2 text-gray-400 text-sm">
+            <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></div>
+            <span className="font-semibold tracking-tight">Active Recall Coach</span>
+            <span className="text-gray-600">v1.0.1</span>
+          </div>
+          <div className="text-sm font-medium text-gray-500">
+            Crafted with precision by <span className="text-indigo-400 font-bold hover:text-indigo-300 transition-colors cursor-pointer">Akshay Jawalkar</span>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };
@@ -501,16 +515,3 @@ const CollapsibleSection = ({ title, icon, color, defaultOpen, children }) => {
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(<App />);
-// ...existing code...
-        </main>
-      </div>
-
-      {/* Attribution */}
-      <div className="fixed left-4 bottom-4 z-30">
-        <div className="text-xs text-gray-400 bg-gray-900/60 px-3 py-1 rounded-md border border-gray-800">
-          Made by Akshay Jawalkar
-        </div>
-      </div>
-    </div>
-  );
-};
