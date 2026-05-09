@@ -250,8 +250,8 @@ const App = () => {
     try {
       // Feynman Mode Enhancement
       let aiPrompt = feynmanMode 
-        ? `Act as a curious but confused student. After providing a concise study guide for "${topic}", ask me 2-3 specific, challenging questions that test if I truly understand the underlying concepts, not just the definitions.`
-        : `Create a concise, high-density study guide for: "${topic}". Focus on core definitions and key facts.`;
+        ? `Act as a curious but confused student. Create a concise study guide for "${topic}". Then, ask me 2-3 specific, challenging questions that test if I truly understand the underlying concepts, not just the definitions. Focus on "Why" and "How" rather than "What".`
+        : `Create a high-density study guide for: "${topic}". For each key point, provide a short "Deep Understanding" explanation that shows the mechanism behind the concept, not just the buzzword.`;
 
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -348,12 +348,24 @@ const App = () => {
         const brainDumpLower = brainDump.toLowerCase();
         
         keywords.forEach(kw => {
-          if (brainDumpLower.includes(kw)) {
-             recalled_correctly.push(`Successful retrieval: You remembered the concept of "${kw}".`);
+          const index = brainDumpLower.indexOf(kw);
+          if (index !== -1) {
+             // Check for "Explanation Depth" - see if the keyword is followed by a substantial phrase
+             const context = brainDumpLower.substring(index, index + 60);
+             const wordsInContext = context.split(/\s+/).filter(w => w.length > 0).length;
+             
+             if (wordsInContext > 5) {
+               recalled_correctly.push(`Detailed Recall: You explained "${kw}" with conceptual depth.`);
+             } else {
+               gaps.push({
+                 concept: `${kw} (Surface Level)`,
+                 cue_question: `You mentioned "${kw}", but can you explain *what* it is or *how* it works? Stating the word isn't enough for mastery.`
+               });
+             }
           } else {
              gaps.push({
                concept: `Missing: ${kw}`,
-               cue_question: `How does "${kw}" fit into your understanding of ${topic}?`
+               cue_question: `How does "${kw}" fit into your understanding of ${topic}? Try to define it in your own words.`
              });
           }
         });
