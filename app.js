@@ -65,7 +65,7 @@ const App = () => {
   const [sourceMaterial, setSourceMaterial] = useState('');
   const [confidence, setConfidence] = useState(3);
   
-  const [currentScreen, setCurrentScreen] = useState('dashboard');
+  const [currentScreen, setCurrentScreen] = useState('input');
   const [results, setResults] = useState(null);
   const [error, setError] = useState('');
   const [isParsing, setIsParsing] = useState(false);
