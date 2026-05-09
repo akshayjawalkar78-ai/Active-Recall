@@ -506,7 +506,7 @@ const App = () => {
                 ))
               )}
             </div>
-          </section>Section>
+          </section>
         </div>
         
         <div className="p-4 border-t border-gray-800 bg-gray-950/20">
