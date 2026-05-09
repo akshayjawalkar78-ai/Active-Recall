@@ -176,35 +176,21 @@ const App = () => {
     setError('');
 
     try {
-      // Using allorigins.win as a CORS proxy
-      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-      const response = await fetch(proxyUrl);
-      const data = await response.json();
+      // r.jina.ai is a specialized scraper that bypasses many bot protections
+      // and returns clean markdown/text content.
+      const scraperUrl = `https://r.jina.ai/${url}`;
+      const response = await fetch(scraperUrl);
+      const text = await response.text();
       
-      if (data.contents) {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(data.contents, 'text/html');
-        
-        // Remove scripts, styles, and nav elements to get cleaner text
-        const selectorsToRemove = ['script', 'style', 'nav', 'footer', 'header', 'aside'];
-        selectorsToRemove.forEach(s => {
-          doc.querySelectorAll(s).forEach(el => el.remove());
-        });
-
-        const text = doc.body.innerText || doc.body.textContent;
-        const cleanText = text.replace(/\s+/g, ' ').trim();
-
-        if (cleanText.length > 100) {
-          setSourceMaterial(cleanText);
-        } else {
-          setError("Fetched content was too short. Try a different article.");
-        }
+      if (text && text.length > 100) {
+        // Jina returns clean text/markdown, so we don't need DOMParser
+        setSourceMaterial(text.trim());
       } else {
-        throw new Error("Empty content received");
+        throw new Error("Empty or too short content received");
       }
     } catch (err) {
       console.error("Link fetch error:", err);
-      setError("Failed to fetch link. Some sites block automated access.");
+      setError("This site is blocking automated access. You may need to copy and paste the text manually.");
     } finally {
       setIsFetchingLink(false);
     }
