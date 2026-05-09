@@ -177,9 +177,20 @@ const App = () => {
       let gaps = [];
       let review_flag = "";
       
+      const wordCount = brainDump.trim().split(/\s+/).length;
+      const lowerDump = brainDump.toLowerCase();
+      const isClueless = lowerDump.includes("clueless") || lowerDump.includes("don't know") || lowerDump.includes("don't remember") || lowerDump.includes("idk") || wordCount < 5;
+
       const stopWords = new Set(['the','is','at','which','on','and','a','an','in','to','of','for','with','as','by','that','this','it','from','or','be','are','was','were','have','has','had','not','but','what','when','where','why','how','all','any','both','each','few','more','most','other','some','such','no','nor','not','only','own','same','so','than','too','very','can','will','just']);
       
-      if (sourceMaterial.trim().length > 10) {
+      if (isClueless && confidence <= 2) {
+        recalled_correctly.push("Honest self-assessment: You've identified a significant knowledge gap.");
+        gaps.push({ 
+          concept: "Core Fundamentals", 
+          cue_question: `Since you're feeling clueless about ${topic}, what's the very first thing a textbook would say about it? Try to recall just one definition.` 
+        });
+        review_flag = "Critical Retrieval Failure. Do not move on. You need to review the source material again before your next brain dump.";
+      } else if (sourceMaterial.trim().length > 10) {
         // Extract words from source
         const sourceWordsRaw = sourceMaterial.toLowerCase().replace(/[^\w\s]/gi, '').split(/\s+/);
         const freqMap = {};
@@ -195,35 +206,37 @@ const App = () => {
         
         keywords.forEach(kw => {
           if (brainDumpLower.includes(kw)) {
-             recalled_correctly.push(`You successfully retrieved information related to "${kw}".`);
+             recalled_correctly.push(`Successful retrieval: You remembered the concept of "${kw}".`);
           } else {
              gaps.push({
-               concept: `Missing Concept: ${kw}`,
-               cue_question: `What is the significance or definition of "${kw}" in the context of ${topic}?`
+               concept: `Missing: ${kw}`,
+               cue_question: `How does "${kw}" fit into your understanding of ${topic}?`
              });
           }
         });
         
-        if (recalled_correctly.length === 0) recalled_correctly.push("Attempted recall, but missed the central vocabulary from the text.");
-        if (gaps.length > 0) {
-           review_flag = `Focus next time on connecting the concept of "${gaps[0].concept.split(': ')[1]}" to your broader understanding.`;
+        if (recalled_correctly.length === 0) {
+          recalled_correctly.push("Attempted recall initiated, but no core vocabulary was detected.");
+          review_flag = "Low retrieval accuracy. Focus on the bolded terms in your source material next time.";
+        } else if (gaps.length > 0) {
+          review_flag = `You have the building blocks (${recalled_correctly.length} concepts), but you're missing ${gaps.length} key links.`;
         } else {
-           review_flag = "Excellent recall! You hit all major keywords. Next step: focus on the relationships between them.";
+          review_flag = "Total Recall! You've successfully retrieved all major keywords from the source.";
         }
       } else {
         // Heuristic analysis based on length and structure
-        const wordCount = brainDump.trim().split(/\s+/).length;
         if (wordCount > 50) {
-          recalled_correctly.push("High volume of retrieval: you wrote down a substantial amount from memory.");
-          recalled_correctly.push("Strong initial fluency for this topic.");
-          gaps.push({ concept: "Precision Check", cue_question: `Are you sure all the details you wrote about ${topic} are 100% accurate?` });
-          gaps.push({ concept: "Structure", cue_question: `Can you organize this brain dump into clear categories or bullet points?` });
-          review_flag = "You have broad knowledge. Next time, try to add specific dates, names, or strict definitions.";
+          recalled_correctly.push("High retrieval volume: You have a lot of 'active' information ready to be organized.");
+          gaps.push({ concept: "Precision & Accuracy", cue_question: `Can you verify the specific details of your brain dump? High volume sometimes hides small errors.` });
+          review_flag = "Broad knowledge detected. Now, try to structure this into a 'teaching' format for someone else.";
+        } else if (wordCount > 10) {
+          recalled_correctly.push("Initial retrieval baseline established.");
+          gaps.push({ concept: "Elaboration", cue_question: `You've got the 'what'. Can you explain the 'why' or 'how' for ${topic}?` });
+          review_flag = "Foundation is there, but the 'branches' are missing. Aim for more detail in your next dump.";
         } else {
-          recalled_correctly.push("You established a baseline understanding of the topic.");
-          gaps.push({ concept: "Elaboration", cue_question: `What else connects to the things you just wrote about ${topic}?` });
-          gaps.push({ concept: "Real-world Examples", cue_question: "Can you provide a practical example of this concept?" });
-          review_flag = "Focus on expanding your knowledge tree—try to connect at least 3 sub-topics next time.";
+          recalled_correctly.push("Brief retrieval attempt.");
+          gaps.push({ concept: "Minimum Detail", cue_question: `That was very short. What's one more sentence you can add about ${topic}?` });
+          review_flag = "Insufficient data for a full analysis. Challenge yourself to write at least 3-4 sentences next time.";
         }
       }
 
@@ -231,8 +244,8 @@ const App = () => {
         recalled_correctly,
         gaps,
         consolidation_cues: [
-          `How does ${topic} relate to the other topics you are learning right now?`,
-          `If you had to teach this to a beginner, what analogy would you use?`
+          `If you had to explain ${topic} to a 10-year-old using only the things you JUST recalled, could you?`,
+          `What is the most 'boring' part of this topic? (That's usually the part you'll forget first).`
         ],
         review_flag
       };
@@ -525,7 +538,29 @@ const App = () => {
                   <p className="text-gray-100 font-medium text-lg leading-relaxed">{results.review_flag}</p>
                 </div>
 
-                <div className="pt-6">
+                <div className="pt-6 flex flex-col gap-3">
+                  <div className="bg-indigo-600/10 border border-indigo-500/30 rounded-xl p-6 shadow-inner animate-pulse-slow">
+                    <h3 className="text-indigo-300 font-bold text-sm uppercase tracking-wider flex items-center gap-2 mb-4">
+                      <ZapIcon />
+                      Immediate Active Recall Challenge
+                    </h3>
+                    <p className="text-gray-200 text-lg mb-6 leading-relaxed italic">
+                      "{results.gaps.length > 0 ? results.gaps[0].cue_question : results.consolidation_cues[0]}"
+                    </p>
+                    <button 
+                      onClick={() => {
+                        setBrainDump('');
+                        setCurrentScreen('input');
+                        // Auto-fill topic to encourage immediate retry with the new focus
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-lg transition shadow-lg shadow-indigo-600/40 flex justify-center items-center gap-2 group"
+                    >
+                      Answer This in a New Dump
+                      <span className="group-hover:translate-x-1 transition-transform">→</span>
+                    </button>
+                  </div>
+
                   <button 
                     onClick={() => {
                       setBrainDump('');
@@ -533,7 +568,7 @@ const App = () => {
                     }}
                     className="w-full bg-gray-800 hover:bg-gray-700 text-white font-medium py-3.5 rounded-lg transition border border-gray-700 shadow-md active:scale-[0.98]"
                   >
-                    Try Again
+                    Try Again from Scratch
                   </button>
                 </div>
               </div>
