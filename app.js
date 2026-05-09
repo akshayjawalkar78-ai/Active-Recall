@@ -535,11 +535,20 @@ const App = () => {
       
       <div className="bg-gray-900 border border-gray-800 p-6 rounded-2xl">
         <h3 className="text-sm font-bold text-gray-300 mb-4">Recent Performance</h3>
-        <div className="flex items-end gap-2 h-32 px-2">
-          {(stats.history || []).slice(-10).map((h, i) => (
-            <div key={i} className="flex-1 bg-indigo-500/20 rounded-t-lg relative group" style={{ height: `${h.score}%` }}>
-              <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-800 text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
-                {h.score}%
+        <div className="flex items-end gap-3 h-40 px-2">
+          {(stats.history || []).slice(-10).reverse().map((h, i) => (
+            <div key={i} className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
+              <div 
+                className="w-full bg-indigo-500/20 rounded-t-lg relative group transition-all hover:bg-indigo-500/40" 
+                style={{ height: `${h.score}%` }}
+              >
+                <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-gray-800 text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-30 shadow-xl border border-gray-700">
+                  <div className="font-bold text-indigo-400">{h.score}% Accuracy</div>
+                  <div className="text-[8px] text-gray-500">{h.date}</div>
+                </div>
+              </div>
+              <div className="text-[9px] text-gray-600 font-medium rotate-[-45deg] origin-top-left translate-y-1">
+                {h.date.split(' ').slice(1, 3).join(' ')}
               </div>
             </div>
           ))}
