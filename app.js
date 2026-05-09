@@ -164,11 +164,12 @@ const App = () => {
   };
 
   const handleLinkFetch = async () => {
-    const url = prompt("Paste the article URL here:");
+    const url = prompt("Paste the YouTube Video URL here:");
     if (!url) return;
 
-    if (!url.startsWith('http')) {
-      setError("Please enter a valid URL starting with http:// or https://");
+    const isYouTube = url.includes('youtube.com') || url.includes('youtu.be');
+    if (!isYouTube) {
+      setError("Currently, only YouTube links are supported for automatic transcription. Please paste a valid YouTube URL.");
       return;
     }
 
@@ -176,21 +177,26 @@ const App = () => {
     setError('');
 
     try {
-      // r.jina.ai is a specialized scraper that bypasses many bot protections
-      // and returns clean markdown/text content.
+      // r.jina.ai handles YouTube URLs by attempting to extract transcripts and metadata.
       const scraperUrl = `https://r.jina.ai/${url}`;
       const response = await fetch(scraperUrl);
       const text = await response.text();
       
       if (text && text.length > 100) {
-        // Jina returns clean text/markdown, so we don't need DOMParser
-        setSourceMaterial(text.trim());
+        // Cleaning up Jina's output for YouTube to focus on the content
+        let cleanText = text.trim();
+        
+        // Remove common Jina/YouTube boilerplate if present
+        cleanText = cleanText.replace(/### Video Details[\s\S]*?---/g, ''); 
+        cleanText = cleanText.replace(/\[Watch on YouTube\].*/g, '');
+
+        setSourceMaterial(cleanText.trim());
       } else {
-        throw new Error("Empty or too short content received");
+        throw new Error("Could not extract transcript. The video might not have captions enabled.");
       }
     } catch (err) {
       console.error("Link fetch error:", err);
-      setError("This site is blocking automated access. You may need to copy and paste the text manually.");
+      setError("Failed to extract YouTube transcript. Make sure the video has public captions available.");
     } finally {
       setIsFetchingLink(false);
     }
@@ -450,10 +456,10 @@ const App = () => {
                       <button 
                         onClick={handleLinkFetch}
                         className={`p-2 rounded-full transition flex items-center justify-center gap-1.5 text-xs font-semibold ${isFetchingLink ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/50' : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 border border-gray-700'}`}
-                        title="Fetch content from a URL"
+                        title="Extract transcript from a YouTube video"
                       >
                         {isFetchingLink ? <LoaderIcon /> : <LinkIcon />}
-                        {isFetchingLink ? "Fetching..." : "Link"}
+                        {isFetchingLink ? "Fetching..." : "YouTube"}
                       </button>
                     </div>
                   </div>
