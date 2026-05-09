@@ -51,8 +51,8 @@ const App = () => {
   const [results, setResults] = useState(null);
   const [error, setError] = useState('');
   const [isParsing, setIsParsing] = useState(false);
-  const [isFetchingLink, setIsFetchingLink] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [apiKey, setApiKey] = useState(localStorage.getItem('active_recall_apikey') || '');
   
   const [sessions, setSessions] = useState([]);
 
@@ -74,6 +74,10 @@ const App = () => {
   useEffect(() => {
     localStorage.setItem('active_recall_sessions', JSON.stringify(sessions));
   }, [sessions]);
+
+  useEffect(() => {
+    localStorage.setItem('active_recall_apikey', apiKey);
+  }, [apiKey]);
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -167,67 +171,52 @@ const App = () => {
     }
   };
 
-  const handleLinkFetch = async () => {
-    const url = prompt("Paste the YouTube Video URL here:");
-    if (!url) return;
-
-    const isYouTube = url.includes('youtube.com') || url.includes('youtu.be');
-    if (!isYouTube) {
-      setError("Currently, only YouTube links are supported for automatic transcription. Please paste a valid YouTube URL.");
-      return;
-    }
-
-    setIsFetchingLink(true);
-    setError('');
-
-    try {
-      // r.jina.ai handles YouTube URLs by attempting to extract transcripts and metadata.
-      const scraperUrl = `https://r.jina.ai/${url}`;
-      const response = await fetch(scraperUrl);
-      const text = await response.text();
-      
-      if (text && text.length > 100) {
-        // Cleaning up Jina's output for YouTube to focus on the content
-        let cleanText = text.trim();
-        
-        // Remove common Jina/YouTube boilerplate if present
-        cleanText = cleanText.replace(/### Video Details[\s\S]*?---/g, ''); 
-        cleanText = cleanText.replace(/\[Watch on YouTube\].*/g, '');
-
-        setSourceMaterial(cleanText.trim());
-      } else {
-        throw new Error("Could not extract transcript. The video might not have captions enabled.");
-      }
-    } catch (err) {
-      console.error("Link fetch error:", err);
-      setError("Failed to extract YouTube transcript. Make sure the video has public captions available.");
-    } finally {
-      setIsFetchingLink(false);
-    }
-  };
-
   const handleAIGenerate = async () => {
     if (!topic.trim()) {
       setError("Please enter a topic first so the AI knows what to generate.");
       return;
     }
 
+    if (!topic.trim()) {
+      setError("Please enter a topic first.");
+      return;
+    }
+
+    if (!apiKey) {
+      const key = prompt("Please enter your Anthropic API Key to use this feature. You can also save it in the sidebar.");
+      if (key) setApiKey(key);
+      else return;
+    }
+
     setIsGeneratingAI(true);
     setError('');
 
     try {
-      const response = await fetch('/api/generate', {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic })
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'dangerously-allow-browser': 'true'
+        },
+        body: JSON.stringify({
+          model: 'claude-3-haiku-20240307',
+          max_tokens: 1000,
+          messages: [
+            {
+              role: 'user',
+              content: `Create a concise, high-density study guide for: "${topic}". Focus on core definitions and key facts.`
+            }
+          ]
+        })
       });
 
       const data = await response.json();
-      
-      if (response.ok && data.content && data.content[0].text) {
+      if (data.content && data.content[0].text) {
         setSourceMaterial(data.content[0].text);
       } else {
-        throw new Error(data.error || "AI generation failed");
+        throw new Error(data.error?.message || "AI generation failed");
       }
     } catch (err) {
       console.error("AI generation error:", err);
@@ -391,6 +380,18 @@ const App = () => {
           )}
         </div>
         
+        <div className="p-4 border-t border-gray-800 bg-gray-950/20">
+          <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 block">AI Settings</label>
+          <input 
+            type="password" 
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            placeholder="Anthropic API Key"
+            className="w-full bg-gray-950 border border-gray-800 rounded px-2 py-1.5 text-xs text-gray-300 focus:outline-none focus:border-indigo-500 transition placeholder:text-gray-700"
+          />
+          <p className="text-[9px] text-gray-600 mt-2 leading-tight">Your key is stored locally in your browser and never sent anywhere else.</p>
+        </div>
+
         {sessions.length > 0 && (
           <div className="p-4 border-t border-gray-800">
             <button onClick={handleClearHistory} className="w-full text-sm text-red-400 hover:text-red-300 hover:bg-red-950/30 py-2 rounded transition">
@@ -489,14 +490,6 @@ const App = () => {
                         {isParsing ? <LoaderIcon /> : <FileIcon />}
                         {isParsing ? "Parsing..." : "File"}
                       </label>
-                      <button 
-                        onClick={handleLinkFetch}
-                        className={`p-2 rounded-full transition flex items-center justify-center gap-1.5 text-xs font-semibold ${isFetchingLink ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/50' : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 border border-gray-700'}`}
-                        title="Extract transcript from a YouTube video"
-                      >
-                        {isFetchingLink ? <LoaderIcon /> : <LinkIcon />}
-                        {isFetchingLink ? "Fetching..." : "YouTube"}
-                      </button>
                       <button 
                         onClick={handleAIGenerate}
                         className={`p-2 rounded-full transition flex items-center justify-center gap-1.5 text-xs font-semibold ${isGeneratingAI ? 'bg-purple-500/20 text-purple-400 border border-purple-500/50 animate-pulse' : 'bg-indigo-900/40 text-indigo-300 hover:text-white hover:bg-indigo-800 border border-indigo-500/30'}`}
