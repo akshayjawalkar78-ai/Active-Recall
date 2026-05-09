@@ -37,6 +37,9 @@ const MailIcon = () => (
 const LinkIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
 );
+const SparklesIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path><path d="M5 3v4"></path><path d="M19 17v4"></path><path d="M3 5h4"></path><path d="M17 19h4"></path></svg>
+);
 
 const App = () => {
   const [topic, setTopic] = useState('');
@@ -49,6 +52,8 @@ const App = () => {
   const [error, setError] = useState('');
   const [isParsing, setIsParsing] = useState(false);
   const [isFetchingLink, setIsFetchingLink] = useState(false);
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [apiKey, setApiKey] = useState(localStorage.getItem('active_recall_apikey') || '');
   
   const [sessions, setSessions] = useState([]);
 
@@ -70,6 +75,10 @@ const App = () => {
   useEffect(() => {
     localStorage.setItem('active_recall_sessions', JSON.stringify(sessions));
   }, [sessions]);
+
+  useEffect(() => {
+    localStorage.setItem('active_recall_apikey', apiKey);
+  }, [apiKey]);
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -199,6 +208,62 @@ const App = () => {
       setError("Failed to extract YouTube transcript. Make sure the video has public captions available.");
     } finally {
       setIsFetchingLink(false);
+    }
+  };
+
+  const handleAIGenerate = async () => {
+    if (!topic.trim()) {
+      setError("Please enter a topic first so the AI knows what to generate.");
+      return;
+    }
+
+    if (!apiKey) {
+      const key = prompt("Please enter your Anthropic API Key (or any compatible OpenAI-format key) to use this feature. You can also save it in the sidebar.");
+      if (key) setApiKey(key);
+      else return;
+    }
+
+    setIsGeneratingAI(true);
+    setError('');
+
+    try {
+      // We'll use the Anthropic API as the default as it's excellent for educational content
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'dangerously-allow-browser': 'true' // Required for client-side calls
+        },
+        body: JSON.stringify({
+          model: 'claude-3-haiku-20240307',
+          max_tokens: 1000,
+          messages: [
+            {
+              role: 'user',
+              content: `Create a concise, high-density study guide for the topic: "${topic}". 
+              Focus on core definitions, key principles, and essential facts. 
+              The goal is to provide enough detail for a student to perform active recall, but not so much that it's overwhelming.
+              Format it as a clean text document with clear headings.`
+            }
+          ]
+        })
+      });
+
+      const data = await response.json();
+      if (data.content && data.content[0].text) {
+        setSourceMaterial(data.content[0].text);
+      } else if (data.error) {
+        throw new Error(data.error.message || "AI generation failed");
+      } else {
+        throw new Error("Invalid response from AI service");
+      }
+    } catch (err) {
+      console.error("AI generation error:", err);
+      setError(`AI Error: ${err.message}. If you don't have an Anthropic key, you can use the YouTube or File features instead.`);
+    } finally {
+      setIsGeneratingAI(false);
     }
   };
 
@@ -355,6 +420,19 @@ const App = () => {
             ))
           )}
         </div>
+        
+        <div className="p-4 border-t border-gray-800 bg-gray-950/20">
+          <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 block">AI Settings</label>
+          <input 
+            type="password" 
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            placeholder="Anthropic API Key"
+            className="w-full bg-gray-950 border border-gray-800 rounded px-2 py-1.5 text-xs text-gray-300 focus:outline-none focus:border-indigo-500 transition placeholder:text-gray-700"
+          />
+          <p className="text-[9px] text-gray-600 mt-2 leading-tight">Your key is stored locally in your browser and never sent anywhere else.</p>
+        </div>
+
         {sessions.length > 0 && (
           <div className="p-4 border-t border-gray-800">
             <button onClick={handleClearHistory} className="w-full text-sm text-red-400 hover:text-red-300 hover:bg-red-950/30 py-2 rounded transition">
@@ -460,6 +538,14 @@ const App = () => {
                       >
                         {isFetchingLink ? <LoaderIcon /> : <LinkIcon />}
                         {isFetchingLink ? "Fetching..." : "YouTube"}
+                      </button>
+                      <button 
+                        onClick={handleAIGenerate}
+                        className={`p-2 rounded-full transition flex items-center justify-center gap-1.5 text-xs font-semibold ${isGeneratingAI ? 'bg-purple-500/20 text-purple-400 border border-purple-500/50 animate-pulse' : 'bg-indigo-900/40 text-indigo-300 hover:text-white hover:bg-indigo-800 border border-indigo-500/30'}`}
+                        title="Generate study material using AI"
+                      >
+                        {isGeneratingAI ? <LoaderIcon /> : <SparklesIcon />}
+                        {isGeneratingAI ? "Generating..." : "AI Magic"}
                       </button>
                     </div>
                   </div>
