@@ -1,0 +1,8 @@
+.env
+active_recall.db
+__pycache__/
+*.pyc
+node_modules/
+erssjawa*
+tatus
+app v.1.0.1.js
