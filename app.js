@@ -697,7 +697,6 @@ const App = () => {
               <ZapIcon />
               Active Recall Coach
             </h1>
-            <span className="text-[10px] font-bold tracking-widest uppercase bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded border border-indigo-500/20">Local Mode</span>
           </div>
 
           <a 
