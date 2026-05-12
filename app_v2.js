@@ -252,7 +252,7 @@ const App = () => {
 
         <div className="p-4 border-t border-white/5 bg-black/20">
           <div className="w-full text-center text-[10px] font-bold text-gray-600 uppercase tracking-widest py-1">
-             Vercel Local JS Mode
+             Crafted with precision by Akshay Jawalkar
           </div>
         </div>
       </div>
