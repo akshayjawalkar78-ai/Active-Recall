@@ -6,7 +6,7 @@ const cwd = resolve('.');
 let timer = null;
 
 watch(cwd, { recursive: true }, (event, filename) => {
-  if (!filename || filename.startsWith('.git')) return;
+  if (filename && filename.startsWith('.git')) return;
   clearTimeout(timer);
   timer = setTimeout(() => {
     try {
