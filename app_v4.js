@@ -172,14 +172,15 @@ const themeStyles = `
   .theme-root.light { --app-bg: #f8fafc; --app-surface: #ffffff; --app-surface-muted: #f8fafc; --app-text: #0f172a; --app-text-muted: #475569; --app-border: #e2e8f0; --app-accent: #0f172a; }
   .theme-root.dark { --app-bg: #020617; --app-surface: #0f172a; --app-surface-muted: #111827; --app-text: #f8fafc; --app-text-muted: #cbd5e1; --app-border: #334155; --app-accent: #f8fafc; }
   .theme-root { background-color: var(--app-bg); color: var(--app-text); }
-  .theme-root .bg-slate-50 { background-color: var(--app-surface-muted) !important; }
-  .theme-root .bg-white { background-color: var(--app-surface) !important; }
-  .theme-root .bg-slate-900 { background-color: var(--app-accent) !important; border-color: var(--app-accent) !important; color: var(--app-surface) !important; }
+  .theme-root .bg-slate-50 { background-color: var(--app-surface-muted) !important; color: var(--app-text) !important; }
+  .theme-root .bg-white { background-color: var(--app-surface) !important; color: var(--app-text) !important; }
+  .theme-root .bg-slate-900 { background-color: var(--app-surface-muted) !important; border-color: var(--app-border) !important; color: var(--app-text) !important; }
   .theme-root .border-slate-200, .theme-root .border-slate-300 { border-color: var(--app-border) !important; }
-  .theme-root .text-slate-900 { color: var(--app-text) !important; }
+  .theme-root .text-slate-900, .theme-root .text-slate-800 { color: var(--app-text) !important; }
   .theme-root .text-slate-700 { color: var(--app-text-muted) !important; }
   .theme-root .text-slate-600, .theme-root .text-slate-500, .theme-root .text-slate-400 { color: var(--app-text-muted) !important; }
   .theme-root .text-slate-100, .theme-root .text-slate-300 { color: var(--app-text) !important; }
+  .theme-root .text-white { color: var(--app-text) !important; }
 `;
 
 const App = () => {
@@ -442,8 +443,7 @@ const App = () => {
               <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Master your notes through active recall.</h1>
             </div>
             <div className="flex flex-wrap items-center gap-3 text-sm">
-              <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-slate-600">{user.streak} day streak</div>
-              <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-slate-600">{user.xp} XP</div>
+              <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 font-medium text-slate-700">Crafted By Akshay Jawalkar</div>
               <PrimaryButton onClick={() => setCurrentView('sessions')}>Start Studying</PrimaryButton>
             </div>
           </div>
@@ -783,7 +783,7 @@ const App = () => {
           )}
         </main>
         <footer className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4 text-sm text-slate-500">
-          <span>Crafted by Akshay Jawalkar</span>
+          <span>Crafted By Akshay Jawalkar</span>
           <span>{theme === 'dark' ? 'Dark mode' : 'Light mode'} • Active Recall Coach</span>
         </footer>
       </div>
