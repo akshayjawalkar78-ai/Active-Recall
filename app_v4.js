@@ -436,20 +436,20 @@ const App = () => {
     <div className={`min-h-screen theme-root ${theme === 'dark' ? 'dark' : 'light'}`}>
       <style>{themeStyles}</style>
       <div className="mx-auto flex min-h-screen max-w-7xl flex-col px-4 py-4 sm:px-6 lg:px-8">
-        <header className="mb-5 rounded-[28px] border border-slate-200 bg-white/90 px-5 py-4 shadow-sm backdrop-blur">
+        <header className={`mb-5 rounded-[28px] border px-5 py-4 shadow-sm backdrop-blur ${theme === 'dark' ? 'border-slate-700 bg-slate-900/95' : 'border-slate-200 bg-white/90'}`}>
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">Active Recall Coach</p>
-              <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Master your notes through active recall.</h1>
+              <p className={`text-xs font-semibold uppercase tracking-[0.28em] ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>Active Recall Coach</p>
+              <h1 className={`text-2xl font-semibold tracking-tight ${theme === 'dark' ? 'text-slate-100' : 'text-slate-900'}`}>Master your notes through active recall.</h1>
             </div>
             <div className="flex flex-wrap items-center gap-3 text-sm">
-              <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 font-medium text-slate-700">Crafted By Akshay Jawalkar</div>
+              <div className={`rounded-full border px-3 py-1 font-medium ${theme === 'dark' ? 'border-slate-700 bg-slate-800 text-slate-200' : 'border-slate-200 bg-slate-50 text-slate-700'}`}>Crafted By Akshay Jawalkar</div>
               <PrimaryButton onClick={() => setCurrentView('sessions')}>Start Studying</PrimaryButton>
             </div>
           </div>
           <nav className="mt-4 flex flex-wrap gap-2">
             {navItems.map((item) => (
-              <button key={item.id} onClick={() => setCurrentView(item.id)} className={`rounded-full px-3 py-2 text-sm font-medium transition ${currentView === item.id ? 'bg-slate-900 text-white' : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'}`}>
+              <button key={item.id} onClick={() => setCurrentView(item.id)} className={`rounded-full px-3 py-2 text-sm font-medium transition ${currentView === item.id ? (theme === 'dark' ? 'bg-slate-100 text-slate-900' : 'bg-slate-900 text-white') : (theme === 'dark' ? 'border border-slate-700 bg-slate-800/70 text-slate-200 hover:border-slate-600 hover:bg-slate-700' : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50')}`}>
                 {item.label}
               </button>
             ))}
