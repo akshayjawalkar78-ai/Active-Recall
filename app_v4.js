@@ -167,6 +167,21 @@ const createAnalysis = ({ topic, sourceText, recallText, confidence }) => {
   return { topic, score, confidence, summary: score >= 80 ? 'You retrieved the central ideas with strong clarity.' : score >= 55 ? 'Your recall is partially complete. The remaining gaps are strategic and fixable.' : 'The recall attempt shows a broad gap in understanding. Review the core concepts before testing again.', concepts: results, weaknessMap: { strong, moderate, weak }, gaps, suggestions };
 };
 
+const themeStyles = `
+  .theme-root { transition: background-color 0.25s ease, color 0.25s ease; }
+  .theme-root.light { --app-bg: #f8fafc; --app-surface: #ffffff; --app-surface-muted: #f8fafc; --app-text: #0f172a; --app-text-muted: #475569; --app-border: #e2e8f0; --app-accent: #0f172a; }
+  .theme-root.dark { --app-bg: #020617; --app-surface: #0f172a; --app-surface-muted: #111827; --app-text: #f8fafc; --app-text-muted: #cbd5e1; --app-border: #334155; --app-accent: #f8fafc; }
+  .theme-root { background-color: var(--app-bg); color: var(--app-text); }
+  .theme-root .bg-slate-50 { background-color: var(--app-surface-muted) !important; }
+  .theme-root .bg-white { background-color: var(--app-surface) !important; }
+  .theme-root .bg-slate-900 { background-color: var(--app-accent) !important; border-color: var(--app-accent) !important; color: var(--app-surface) !important; }
+  .theme-root .border-slate-200, .theme-root .border-slate-300 { border-color: var(--app-border) !important; }
+  .theme-root .text-slate-900 { color: var(--app-text) !important; }
+  .theme-root .text-slate-700 { color: var(--app-text-muted) !important; }
+  .theme-root .text-slate-600, .theme-root .text-slate-500, .theme-root .text-slate-400 { color: var(--app-text-muted) !important; }
+  .theme-root .text-slate-100, .theme-root .text-slate-300 { color: var(--app-text) !important; }
+`;
+
 const App = () => {
   const [currentView, setCurrentView] = useState('home');
   const [user, setUser] = useState(() => JSON.parse(localStorage.getItem('arc_user') || 'null') || { email: 'Student', xp: 140, streak: 5, lastStudyDate: null });
@@ -185,14 +200,27 @@ const App = () => {
   const [voiceError, setVoiceError] = useState('');
   const [focusMode, setFocusMode] = useState(false);
   const [analysis, setAnalysis] = useState(null);
-  const [preferences, setPreferences] = useState(() => JSON.parse(localStorage.getItem('arc_preferences') || '{"voiceEnabled":true,"autoSave":true}'));
+  const [theme, setTheme] = useState(() => {
+    const saved = JSON.parse(localStorage.getItem('arc_preferences') || '{"voiceEnabled":true,"autoSave":true,"theme":"light"}');
+    return saved.theme || 'light';
+  });
+  const [preferences, setPreferences] = useState(() => {
+    const saved = JSON.parse(localStorage.getItem('arc_preferences') || '{"voiceEnabled":true,"autoSave":true,"theme":"light"}');
+    return { voiceEnabled: true, autoSave: true, theme: 'light', ...saved };
+  });
   const recognitionRef = useRef(null);
 
   useEffect(() => { localStorage.setItem('arc_user', JSON.stringify(user)); }, [user]);
   useEffect(() => { localStorage.setItem('arc_sessions', JSON.stringify(sessions)); }, [sessions]);
   useEffect(() => { localStorage.setItem('arc_mastery', JSON.stringify(mastery)); }, [mastery]);
   useEffect(() => { localStorage.setItem('arc_notes', JSON.stringify(notesArchive)); }, [notesArchive]);
-  useEffect(() => { localStorage.setItem('arc_preferences', JSON.stringify(preferences)); }, [preferences]);
+  useEffect(() => { localStorage.setItem('arc_preferences', JSON.stringify({ ...preferences, theme })); }, [preferences, theme]);
+
+  useEffect(() => {
+    document.documentElement.style.colorScheme = theme;
+    document.body.style.backgroundColor = theme === 'dark' ? '#020617' : '#f8fafc';
+    document.body.style.color = theme === 'dark' ? '#f8fafc' : '#0f172a';
+  }, [theme]);
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -384,8 +412,14 @@ const App = () => {
     setSessions([]);
     setMastery({});
     setNotesArchive([]);
-    setPreferences({ voiceEnabled: true, autoSave: true });
+    setPreferences({ voiceEnabled: true, autoSave: true, theme: 'light' });
+    setTheme('light');
     setUploadMessage('Progress cleared. You can start fresh.');
+  };
+
+  const handleThemeChange = (nextTheme) => {
+    setTheme(nextTheme);
+    setPreferences((prev) => ({ ...prev, theme: nextTheme }));
   };
 
   const navItems = [
@@ -398,7 +432,8 @@ const App = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div className={`min-h-screen theme-root ${theme === 'dark' ? 'dark' : 'light'}`}>
+      <style>{themeStyles}</style>
       <div className="mx-auto flex min-h-screen max-w-7xl flex-col px-4 py-4 sm:px-6 lg:px-8">
         <header className="mb-5 rounded-[28px] border border-slate-200 bg-white/90 px-5 py-4 shadow-sm backdrop-blur">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -716,6 +751,13 @@ const App = () => {
                 <p className="text-sm font-semibold uppercase tracking-[0.28em] text-slate-500">Settings</p>
                 <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">Keep the experience simple and calm.</h2>
                 <div className="mt-6 space-y-4">
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <p className="text-sm font-semibold text-slate-900">Appearance</p>
+                    <div className="mt-3 flex gap-2">
+                      <button onClick={() => handleThemeChange('light')} className={`flex-1 rounded-full px-3 py-2 text-sm font-medium ${theme === 'light' ? 'bg-slate-900 text-white' : 'border border-slate-200 bg-white text-slate-700'}`}>Light mode</button>
+                      <button onClick={() => handleThemeChange('dark')} className={`flex-1 rounded-full px-3 py-2 text-sm font-medium ${theme === 'dark' ? 'bg-slate-900 text-white' : 'border border-slate-200 bg-white text-slate-700'}`}>Dark mode</button>
+                    </div>
+                  </div>
                   <label className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700">
                     <span>Voice recall enabled</span>
                     <input type="checkbox" checked={preferences.voiceEnabled} onChange={() => setPreferences((prev) => ({ ...prev, voiceEnabled: !prev.voiceEnabled }))} className="h-4 w-4 rounded border-slate-300" />
@@ -740,6 +782,10 @@ const App = () => {
             </div>
           )}
         </main>
+        <footer className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4 text-sm text-slate-500">
+          <span>Crafted by Akshay Jawalkar</span>
+          <span>{theme === 'dark' ? 'Dark mode' : 'Light mode'} • Active Recall Coach</span>
+        </footer>
       </div>
     </div>
   );
